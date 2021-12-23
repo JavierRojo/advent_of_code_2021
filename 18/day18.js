@@ -159,8 +159,6 @@ The magnitude of this final sum is 4140.
 Add up all of the snailfish numbers from the homework assignment in the order they appear. What is the magnitude of the final sum?
 
 */
-
-const { Console } = require('console');
 var fs = require('fs');
 
 function getData(filename){
@@ -212,9 +210,7 @@ function createIxPaths(element, path = [], allPaths = []) {
 };
 
 
-function add(sn1, sn2){
-  return [sn1, sn2]
-}
+
 
 function compArr(a1, a2){
   return (JSON.stringify(a1)==JSON.stringify(a2))
@@ -245,46 +241,125 @@ function explode(tree, arr, ixPath){ // WORKS!
     if(leftPath.length == 1)
       arr[leftPath[0]] += pair[0][1];
     if(leftPath.length == 2)
-      arr[leftPath[0]][leftPath[1]] += pair[0][1];
+      (arr[leftPath[0]])[leftPath[1]] += pair[0][1];
     if(leftPath.length == 3)
-      arr[leftPath[0]][leftPath[1]][leftPath[2]] += pair[0][1];
+      (arr[leftPath[0]][leftPath[1]])[leftPath[2]] += pair[0][1];
     if(leftPath.length == 4)
-      arr[leftPath[0]][leftPath[1]][leftPath[2]][leftPath[3]] += pair[0][1];
+      (arr[leftPath[0]][leftPath[1]][leftPath[2]])[leftPath[3]] += pair[0][1];
   }
 
   if(hasRightElement){
     let rightPath = tree[pairIx[1]+1][0]
     tree[pairIx[1]+1][1] += pair[1][1]
     if(rightPath.length == 1)
-      arr[rightPath[0]] += pair[0][1];
+      arr[rightPath[0]] += pair[1][1];
     if(rightPath.length == 2)
-      arr[rightPath[0]][rightPath[1]] += pair[0][1];
+      (arr[rightPath[0]])[rightPath[1]] += pair[1][1];
     if(rightPath.length == 3)
-      arr[leftPath[0]][rightPath[1]][rightPath[2]] += pair[0][1];
-    if(rightPath.length == 4)
-      arr[rightPath[0]][rightPath[1]][rightPath[2]][rightPath[3]] += pair[0][1];
+      (arr[rightPath[0]][rightPath[1]])[rightPath[2]] += pair[1][1];
+    if(rightPath.length == 4){
+      (arr[rightPath[0]][rightPath[1]][rightPath[2]])[rightPath[3]] += pair[1][1];
+    }
   }
 
   // DELETE BASED ON IXPATH
-  arr[ixPath[0]][ixPath[1]][ixPath[2]] = 0;
+  if(ixPath.length == 1)
+    arr[ixPath[0]] = 0;
+  if(ixPath.length == 2)
+    arr[ixPath[0]][ixPath[1]] = 0;
+  if(ixPath.length == 3)
+    arr[ixPath[0]][ixPath[1]][ixPath[2]] = 0;
+  if(ixPath.length == 4){
+    (arr[ixPath[0]][ixPath[1]][ixPath[2]])[ixPath[3]] = 0;
+  }
+
   tree.splice(pairIx[0],2);
   tree.splice(pairIx[0], 0, [ixPath,0]);
 }
 
+function detectExplosives(tree){ // WORKS!
+  for(let i = 0; i< tree.length; i++){
+    if(tree[i][0].length > 4){
+      // MATCH
+      let ixPath = tree[i][0]
+      ixPath = [...ixPath];
+      ixPath.pop();
+      return ixPath;
+    }
+  }
+  return false;
+}
+
+function split(tree, arr, ix){
+  let path = tree[ix][0];
+  let newSnail = splitNumber(tree[ix][1]);
+  let p = [...path]
+  let p1 = [...p]; p1.push(0);
+  let p2 = [...p]; p2.push(1);
+  tree.splice(ix, 1, [p1, newSnail[0]]);
+  tree.splice(ix+1, 0, [p2, newSnail[1]]);
+
+  //
+
+    if(p.length == 1)
+      arr[p[0]] = newSnail;
+    if(p.length == 2)
+      (arr[p[0]])[p[1]] = newSnail;
+    if(p.length == 3)
+      (arr[p[0]][p[1]])[p[2]] = newSnail;
+    if(p.length == 4)
+      (arr[p[0]][p[1]][p[2]])[p[3]] = newSnail;
+}
+
+function detectSplittables(tree){
+  for(let i = 0; i< tree.length; i++){
+    if(tree[i][1] >= 10)
+      // MATCH
+      return i;
+    }
+    return null;
+}
+
+function add(sn1, sn2){
+  let snailFish = [sn1, sn2];
+  let tree = createIxPaths(snailFish);
+  let exploded = false;
+  let splitted = false;
+  do{
+    //console.log(tree);
+    exploded = false;
+    splitted = false;
+
+    let ixPath = detectExplosives(tree);
+    if(ixPath){
+      exploded = true;      
+      explode(tree,snailFish,ixPath);
+      continue;
+    }
+
+    let ix = detectSplittables(tree);
+    if (ix != null){
+      splitted = true;
+      split(tree,snailFish,ix);
+      continue;
+    }
+  }while(exploded || splitted)
+  return snailFish;
+}
 
 function puzzle18(inputData){
     //console.log(inputData);
-    let d = [[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]];
-    let d1 = [2,5]
-    let d2 = [0,[4,[1,2]]];
+    let snailFish = inputData[0];
     //SUM EVERY INPUT DATA ROW. RIGHT NOW, TEST WITH ONLY ONE
-    let d3 = add(d1,d2);
-    let tree = createIxPaths(d3);
-    explode(tree, d3, [1,1,1]) //RETURNS PROPER TREE AND D3!
+    for(let i = 1; i< inputData.length; i++){
+      snailFish = add(snailFish, inputData[i]);
+      console.log("AFTER STEP "+i+":")
+    }
     console.log("SOLUTION");
-    console.log(d3);
-    console.log(tree)
+    console.log(createIxPaths(snailFish));
+    console.log(magnitude(snailFish));
+
 }
 
-//getData("day18_test.txt");
-getData("day18_input.txt");
+getData("day18_test.txt");
+//getData("day18_input.txt");
