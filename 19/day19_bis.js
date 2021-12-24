@@ -153,11 +153,16 @@ function addIfNew(point, array){
   }
 }
 
-function nCorrespondenceIn(a1, a2){
+function manhattan(p1, p2){
   let sum = 0;
-  for(let i =0; i< a1.length; i++)
-    if(checkPointInPoints(a1[i],a2))sum++;
+  sum += Math.abs(p2[0]- p1[0]);
+  sum += Math.abs(p2[1]- p1[1]);
+  sum += Math.abs(p2[2]- p1[2]);
   return sum;
+}
+
+function negativeVector3(p){
+  return substractVector3([0,0,0],p)
 }
 
 function puzzle19(inputData){
@@ -189,13 +194,28 @@ function puzzle19(inputData){
       }
     }while((Object.keys(allScanners).length < inputData.length) && foundAny)
 
-    //let p1 = [[0,2,0],[4,1,0], [3,3,0]];
-    //let p2 = [[-1,-1,0], [-5,0,0], [-2,1,0]];
-    //let s = checkTranslation(p1, p2, n=3);
+    //MANHATTAN DISTANCE
+    let maxManhattan = 0;
+    let nScanners = Object.keys(allScanners).length
+    for(let i = 0; i<nScanners; i++){
+      for(let j = 0; j<nScanners; j++){
+        if(i==j)continue; // it would be 0
+        let m = manhattan(allScanners[i][0],allScanners[j][0]);
+        maxManhattan = Math.max(m, maxManhattan);
+        //else we put all the points in 
+        //let pos1 = translateAllPoints(rotateAllPoints(inputData[i],allScanners[i][1]), allScanners[i][0]);
+        //let pos2 = translateAllPoints(rotateAllPoints(inputData[j],allScanners[j][1]), allScanners[j][0]);
+
+      }
+    }
+
+
+    
+    
     console.log("SOLUTION");
     console.log(allScanners);
-    //console.log(allBeacons);
     console.log(allBeacons.length);
+    console.log(maxManhattan);
 
 }
 
