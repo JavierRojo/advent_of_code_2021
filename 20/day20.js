@@ -152,17 +152,17 @@ function getNumberFromBoolBits(BoolBits){
   return sum;
 }
 
-function generateArray(n){
-  return new Array(n).fill(false);
+function generateArray(n,value){
+  return new Array(n).fill(value);
 }
 
-function addFrame(map){
+function addFrame(map, value){
   for(let i = 0; i<map.length; i++){
-    map[i].unshift(false);
-    map[i].push(false);
+    map[i].unshift(value);
+    map[i].push(value);
   }
-  map.unshift(generateArray(map[0].length))
-  map.push(generateArray(map[0].length))
+  map.unshift(generateArray(map[0].length,value))
+  map.push(generateArray(map[0].length,value))
 }
 
 function printMap(map){
@@ -183,8 +183,8 @@ function getMatrix(r,c,map){
   ];
 }
 
-function step(instructions, map){
-  addFrame(map);
+function step(instructions, map, frameValue=false){
+  addFrame(map, map[0][0]);
   map2 = deepCopy(map);
   for(let r = 1; r< map.length-1; r++){
     for(let c = 1; c<map[r].length-1; c++){
@@ -192,6 +192,21 @@ function step(instructions, map){
       map2[r][c] = (instructions[numberInstruction] == "#")
     }
   }
+
+  let newInfValue = instructions[0]=="#"? !map[0][0] : map[0][0];
+
+let r;
+  for(r = 0; r<map2.length; r++){
+    map2[r][0] = newInfValue;
+    map2[r][map2[0].length-1] = newInfValue;
+}
+
+let c;
+  for(c = 0; c<map2[0].length; c++){
+      map2[0][c] = newInfValue;
+      map2[map2.length-1][c] = newInfValue;
+  } 
+
   return map2;
 }
 
@@ -209,17 +224,19 @@ function countLights(map){
 function puzzle20(inputData){
     let instructions = inputData[0];
     let map = inputData[1];
-    addFrame(map);
-    printMap(map);
-    map = step(instructions, map);
-    printMap(map);
-    map = step(instructions, map);
-    
+    addFrame(map,false);
+    addFrame(map,false);
+    addFrame(map,false);
+    //printMap(map);
+    map1 = step(instructions, map);
+    //printMap(map1);
+    map2 = step(instructions, map1);   
+    //console.log("---");
+    //printMap(map2); 
     console.log("SOLUTION");
-    printMap(map);
-    console.log(countLights(map));
+    console.log(countLights(map2));
 }
 
 
-getData("day20_test.txt");
-//getData("day20_input.txt");
+//getData("day20_test.txt");
+getData("day20_input.txt");
