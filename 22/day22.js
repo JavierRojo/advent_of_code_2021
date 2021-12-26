@@ -116,74 +116,114 @@ function getData(filename){
     fs.readFile(filename, 'utf8', function(err, data) {
         if (err) throw err;
         let arrayData = readRawData(data);
-        puzzle21(arrayData);
+        puzzle22(arrayData);
       });
 }
 
 function readRawData(rawData){
     rawData = rawData.replace(/(\r\n|\n|\r)/gm, "\n");
-    let stringPlayers = rawData.split("\n");
-    let players = []
-    stringPlayers.forEach(s =>{
-        let SDataString = s.split(": ");
-        players.push(parseInt(SDataString[1]));        
+    let stringInstructions = rawData.split("\n");
+    let instructions = []
+    stringInstructions.forEach(s =>{
+        let instruction = [];
+        let onPlusNumbers = s.split(" "); // on  +  x=-41..9,y=-7..43,z=-33..15
+        instruction.push(onPlusNumbers[0]);
+        let ranges = onPlusNumbers[1].split(","); // x=-41..9   +   y=-7..43  +  z=-33..15
+        ranges.forEach(range =>{
+          let nums = ((range.split("="))[1]).split("..");
+          instruction.push( [ parseInt(nums[0]) , parseInt(nums[1]) ] );
+        });
+        instructions.push(instruction);    
     });
-    return players;
+    return instructions;
 }
 
-class Die{
-  constructor(v = 0){
-    this.value = v;
-    this.nRolls = 0;
+function notInRange(m,M, min, max){
+  return m>max || M<min;
+}
+
+function filterData(data, limit){
+  console.log("filtering by " + limit);
+  for(let i = 0; i< data.length; i++){
+    let ins = data[i];
+    if(
+      notInRange(ins[1][0], ins[1][1],-limit,limit) ||
+      notInRange(ins[2][0], ins[2][1],-limit,limit) || 
+      notInRange(ins[3][0], ins[3][1],-limit,limit)
+      ){
+        // Completely out of boundaries
+        data.splice(i, 1);
+        i--;
+      }
+    // Once the extreme case is discarded, we can adjust to remain on the [-limit, limit] range
+
+    if(ins[1][0] < -limit) ins[1][0] = -limit;
+    if(ins[1][1] >  limit) ins[1][1] = limit;    
+    if(ins[2][0] < -limit) ins[2][0] = -limit;
+    if(ins[2][1] >  limit) ins[2][1] = limit;    
+    if(ins[3][0] < -limit) ins[3][0] = -limit;
+    if(ins[3][1] >  limit) ins[3][1] = limit;    
   }
-  roll(){
-    let roll = this.nextValue() + this.nextValue() + this.nextValue(); // a + (a+1) + (a+2)
-    //console.log(roll);
-    return roll;
+}
+function compareVector3(pos1, pos2){
+  return (pos1[0]==pos2[0] && pos1[1]==pos2[1] && pos1[2]==pos2[2]);
+}
+function checkPointInPoints(p, points){
+  for(let i = 0; i< points.length; i++){
+    if(compareVector3(p, points[i])){
+      return i;
+    }
   }
-  nextValue(){
-    this.nRolls++;
-    this.value = moduleNoZero(this.value+1,100);
-    return this.value;
+  return false;
+}
+function addIfNew(point, array){
+  let ix = checkPointInPoints(point,array);
+  if(ix === false){
+    array.push(point)
   }
 }
 
-function moduleNoZero (n,mod){
-  return (n%mod == 0)? mod : n%mod;
+function removeIfExists(point, array){
+  let i = checkPointInPoints(point,array);
+  if(i !== false){
+    array.splice(i,1);
+  }
+}
+
+function stringify(x,y,z){
+  return ""+x+"|"+y+"|"+z;
+}
+
+function calculateLightsSingleInstruction(ins, lights){
+  console.log(ins);
+  for(let x = ins[1][0]; x<=ins[1][1]; x++){
+    for(let y = ins[2][0]; y<=ins[2][1]; y++){
+      for(let z = ins[3][0]; z<=ins[3][1]; z++){
+        if(ins[0] == "on"){
+          lights[stringify(x,y,z)] = true;
+        }
+        else{
+          delete lights[stringify(x,y,z)];
+        }      
+      }      
+    }
+  }
 }
 
 function puzzle22(inputData){
-    let points = [0,0];
-    let cells = inputData;    
-    let die = new Die(0);
-
-    let roll;
-    let module = 10;
-    let limitPoints = 1000;
-
-    do{
-      // PLAYER 1
-      roll = die.roll();
-      //console.log(cells[0] + "___"+roll)
-      let sumP1 = cells[0]+roll;
-      cells[0] = moduleNoZero(sumP1, module);
-      points[0] += cells[0];
-
-      if(!(points[0] < limitPoints && points[1] < limitPoints) ) break;
-      
-      // PLAYER 2
-      roll = die.roll();
-      let sumP2 = cells[1]+roll;
-      cells[1] = moduleNoZero(sumP2, module);
-      points[1] += cells[1];
-      
-    }while(points[0] < limitPoints && points[1] < limitPoints);
-
+    filterData(inputData, 50);
+    //console.log(inputData);
     
+    let lights = {};
+    for(let i = 0; i< inputData.length; i++){
+      calculateLightsSingleInstruction(inputData[i],lights);
+      console.log(Object.keys(lights).length);
+    }
+
     console.log("SOLUTION");
-    console.log(points);
-    console.log(Math.min(...points)*die.nRolls)
+    console.log(Object.keys(lights).length);
 }
 
-getData("day22_test.txt");
-//getData("day22_input.txt");
+//getData("day22_smallTest.txt");
+//getData("day22_test.txt");
+getData("day22_input.txt");
