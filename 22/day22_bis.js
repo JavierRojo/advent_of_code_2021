@@ -140,7 +140,6 @@ function checkPointInPoints(p, points){
 }
 
 function getVolume(range){
-  console.log(range);
   return (Math.abs(range[0][1] - range[0][0])+1) * (Math.abs(range[1][1] - range[1][0])+1) * (Math.abs(range[2][1] - range[2][0])+1)
 }
 
@@ -211,7 +210,6 @@ function deepCopy(currentArray){
 
 function diffRegions(rBase, rOther){
   let generatedRegions = [];
-  console.log("diffRegions");
   
   let [x1, y1, z1] = [rBase[0], rBase[1], rBase[2]]
   let [x2, y2, z2] = [rOther[0], rOther[1], rOther[2]]
@@ -238,7 +236,6 @@ function diffRegions(rBase, rOther){
     info = sliceOnAxis(updatedVol, otherOL, 1)
     vols = info[0];
     updatedVol = info[1];
-    console.log(updatedVol);
     vols.forEach(v=>{
       generatedRegions.push(deepCopy(v));
     });
@@ -265,9 +262,7 @@ function calculateLightsSingleInstruction(ins, regions){
     else{
       for(let i=0; i<regions.length; i++){
         let generatedRegions = diffRegions(regions[i], r);
-        console.log("generated regions:")
-        console.log(generatedRegions)
-        console.log("---")
+
         generatedRegions.forEach(reg=>{
           newRegions.push(reg);
         })
@@ -275,12 +270,19 @@ function calculateLightsSingleInstruction(ins, regions){
       newRegions.push(r);
     }
   }
-  else{
-    console.log("We cannot substract... yet")
-  }    
-  console.log("new Regions:");
-  console.log(newRegions);
-  console.log("...")
+  else{ // "off"
+    if(regions.length == 0) return newRegions;
+    else{
+      for(let i=0; i<regions.length; i++){
+        let generatedRegions = diffRegions(regions[i], r);
+
+        generatedRegions.forEach(reg=>{
+          newRegions.push(reg);
+        })
+      }
+      // newRegions.push(r); We substract with diffRegions, but not adding it to the result
+    }
+  } 
   return newRegions;
 }
 
@@ -293,7 +295,7 @@ function getNumberLights(regions){
 }
 
 function puzzle22(inputData){
-    filterData(inputData, 50);
+    //filterData(inputData, 50);
     //console.log(inputData);
     
     let n = 0;
@@ -308,6 +310,6 @@ function puzzle22(inputData){
     console.log(getNumberLights(occupiedRegions));
 }
 
-getData("day22_smallTest.txt");
+//getData("day22_smallTest.txt");
 //getData("day22_testPart2.txt");
-//getData("day22_input.txt");
+getData("day22_input.txt");
