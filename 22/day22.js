@@ -44,7 +44,8 @@ The first step (on x=10..12,y=10..12,z=10..12) turns on a 3x3x3 cuboid consistin
 12,12,10
 12,12,11
 12,12,12
-The second step (on x=11..13,y=11..13,z=11..13) turns on a 3x3x3 cuboid that overlaps with the first. As a result, only 19 additional cubes turn on; the rest are already on from the previous step:
+The second step (on x=11..13,y=11..13,z=11..13) turns on a 3x3x3 cuboid that overlaps with the first. 
+As a result, only 19 additional cubes turn on; the rest are already on from the previous step:
 
 11,11,13
 11,12,13
