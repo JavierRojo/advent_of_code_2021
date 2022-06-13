@@ -77,31 +77,6 @@ To enable as many submarine features as possible, find the largest valid fourtee
 that contains no 0 digits. What is the largest model number accepted by MONAD?
 
 */
-
-
-/*
-IMPORTANT NOTE: Input has loops of 18 instructions with small variations:
-    inp w         >> reading the digit [1-9]
-    mul x 0       >> x goes to zero (independent from previous loop)
-    add x z       >> x = z0
-    mod x 26      >> x = z0%26
-    div z [D1]    >> z = z/[D1]
-    add x [A1]    >> x = (z0%26) + [A1]
-    eql x w       >> ((z0%26) + [A1]) == w -> 1 or 0
-    eql x 0       >> if (((z0%26) + [A1]) == w) -> x=0
-    mul y 0       >> y goes to zero (independent from previous loop)
-    add y 25      >> y=25
-    mul y x       >> y = 25 or 0
-    add y 1       >> y = 26 or 1
-    mul z y       >> z = z*(26 or 1)
-    mul y 0       >> y goes to zero
-    add y w       >> y = w
-    add y [A2]    >> y = w + [A2]
-    mul y x       >> y = x* (w + [A2]) -> x is 1 or 0!
-    add z y       >> z = z+y
-
-*/
-
 const { debug, Console } = require('console');
 var fs = require('fs');
 
@@ -119,116 +94,103 @@ function readRawData(rawData){
     return stringInstructions;
 }
 // --- //
+ALU = [0,0,0,0];
+LIMIT_CANDIDATE = 14;
+CANDIDATE = 100;
+INPUT_QUEUE = [1,0,0];
 
-function splitInstructions(mergedInstructions){
-  let instructions = [];
-  let nInstructions = mergedInstructions.length/14;
-  for (let i = 0; i < 14; i++) {
-    instructions.push(mergedInstructions.slice(nInstructions*i,nInstructions*(i+1)));    
+
+function getAluIndex(char){
+  switch(char){
+    case "w": return 0;
+    case "x": return 1;
+    case "y": return 2;
+    case "z": return 3;
+    default: return null;
   }
-  return instructions;
+}
+function getValue(part){
+  let result = getAluIndex(part);
+  if(result == null)return parseInt(part);
+  else return ALU[result];
 }
 
-function getParams(instructions){
-  let paramIns = [];
-  instructions.forEach(instructionSet => {
-    let D1 = parseInt((instructionSet[4].split(" "))[2]);
-    let A1 = parseInt((instructionSet[5].split(" "))[2]);
-    let A2 = parseInt((instructionSet[15].split(" "))[2]);
-    paramIns.push([D1,A1,A2]);
+function generateCandidate(n){
+  CANDIDATE = n;
+  INPUT_QUEUE = String(n).split("").map(function (x) { 
+    return parseInt(x, 10); 
   });
-  return paramIns;
+
+}
+function isValidCandidate(n){
+  let numbers = String(n).split("").map(function (x) { 
+    return parseInt(x, 10); 
+  });
+  let zero = numbers.indexOf(0);
+  if(zero != -1) return false;
+  else return true;
 }
 
-function getDs(ins){
-  let relations = [];
-  let buffer = [];
-  let currentD1Ix = 0;
-  for(let i = 0; i<7; i++){
-    relations.push([0,0]);
+function getInputValue(){
+  return INPUT_QUEUE.shift();
+}
+
+function decodeInstruction (codeLine){
+  let parts = codeLine.split(" ");
+  let instruction = parts.shift();
+  switch(instruction){
+    case "inp":
+      ALU[getAluIndex(parts[0])] = getInputValue();
+      break;
+    case "eql":
+      ALU[getAluIndex(parts[0])] = (getValue(parts[0]) == getValue(parts[1]))? 1 : 0;
+      break;
+    case "mod":
+      if(getValue(parts[0])<0 || getValue(parts[1])<=0){
+        console.log("DIVISION BY ZERO");
+        return false;//ILLEGAL
+      }
+      ALU[getAluIndex(parts[0])] = getValue(parts[0]) % getValue(parts[1]);
+      break;
+    case "div":
+      if(getValue(parts[1])==0){
+        console.log("DIVISION BY ZERO");
+        return false;//ILLEGAL
+      }
+      ALU[getAluIndex(parts[0])] = Math.floor(getValue(parts[0]) / getValue(parts[1]));
+      break;
+    case "mul":
+      ALU[getAluIndex(parts[0])] = getValue(parts[0]) * getValue(parts[1]);
+      break;
+    case "add":
+      ALU[getAluIndex(parts[0])] = getValue(parts[0]) + getValue(parts[1]);
+      break;
+    default:
+      console.log("ERROR. COMMAND NOT RECOGNIZED: "+ instruction);
+      break;
   }
-  let count = 0;
-  ins.forEach(i => {
-    if(i[0] == 1){
-      buffer.push(currentD1Ix);
-      relations[currentD1Ix][0] = count;
-      currentD1Ix++;
-    }else{
-      let ix = buffer.pop();
-      relations[ix][1] = count;
-    }
-    count++;    
-  });
-  return relations;
+  return true;    
 }
 
-function addValueToRelations(rels, ins){
-  rels.forEach(r => {
-    let w0 = r[0];
-    let w1 = r[1];
-    r.push(ins[w0][2] + ins[w1][1]);    
-  });
-  return rels;
-}
-
-function allPositives(rels){
-  rels.forEach(r => {
-    if(r[2] <0){
-      let r0 = r[0];
-      let r1 = r[1];
-      let r2 = r[2];
-      r[0] = r1;
-      r[1] = r0;
-      r[2] = -r2;
-    }   
-  });
-  return rels;
-
-}
-
-function step(w,z0,params){
-  let x0 = (params[1]+(z0%26)) != w? 1 : 0;
-  let y0 = 25*x0 + 1;
-  let z1 = Math.floor(z0/params[0])*y0;
-  let z2 = z1 + ( (w*params[2]) * x0);
-  return z2;
-}
 
 
 function puzzle24(inputData){
-    let instructions = splitInstructions(inputData);
-    let paramInstructions = getParams(instructions);
-    console.log(paramInstructions);
-    let rels = getDs(paramInstructions);
-    console.log(rels);
-    let relsAdd = addValueToRelations(rels, paramInstructions);
-    console.log(relsAdd);
-    let relsAddPos = allPositives(relsAdd);
-    console.log(relsAddPos);
+    console.log(ALU);
+    console.log(inputData);
+    let success = false;
+    let count = 0;
+    CANDIDATE = 9999999999999
+      //console.log(c);
+      generateCandidate(CANDIDATE);      
+      ALU = [0,0,0,0];
+      for (let i = 0; i < inputData.length; i++) {
+        success = decodeInstruction(inputData[i]);
+        if(!success) break;
+      }    
 
-    // FIND MAYOR COMBINATION: r[1] = 9, all of them > calculate r[0] = r[1]-r[2]
-    let ws = [];
-    for(let i=0;i<14;i++){
-      ws.push(0);
-    }
-    for(let i = 0; i<7; i++){
-      ws[relsAddPos[i][1]] = 9;
-      ws[relsAddPos[i][0]] = 9 - relsAddPos[i][2];
-    }
-    
-    // FIND MINOR COMBINATION: r[0] = 1, all of them > calculate r[1] = r[0]+r[2]et ws = [];
-    let ws2 = [];
-    for(let i=0;i<14;i++){
-      ws2.push(0);
-    }
-    for(let i = 0; i<7; i++){
-      ws2[relsAddPos[i][0]] = 1;
-      ws2[relsAddPos[i][1]] = 1 + relsAddPos[i][2];
-    }
-  
     console.log("SOLUTION");
-    console.log(ws);
-    console.log(ws2);
+    console.log(CANDIDATE);
+    console.log(ALU);
 }
 
 
